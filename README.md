@@ -4,7 +4,7 @@ width="250px" />
 Overview
 --------
 
-RoboSpice is a modular android library that makes writing asynchronous network requests *easy*.
+RoboSpice is a modular android library that makes writing asynchronous network requests *easy* !
 
 To learn more about RoboSpice in 30 seconds, try [this infographics]
 (https://raw.github.com/octo-online/robospice/master/gfx/RoboSpice-InfoGraphics.png).
@@ -14,14 +14,14 @@ If you want to start using RoboSpice right now, jump to the [Wiki](https://githu
 
 Main features of RoboSpice
 --------------------------
-
+* supports Android starting *_from_ SDK version 8 (Froyo / 2.2.x)* 
 * executes network requests **asynchronously** (in a background AndroidService)
 * supports **REST** out of the box (using [Spring Android](http://www.springsource.org/spring-android) or [Google Http Client](http://code.google.com/p/google-http-java-client)).
 * is strongly typed ! You query webservices using **POJOs** and you get POJOs as request results.
 * enforces no constraints neither on POJOs used for requests nor on Activity classes you use in your projects
-* **caches results** in Json with both [Jackson](http://jackson.codehaus.org/) or [Gson](http://code.google.com/p/google-gson/),
+* **caches results** in Json with both [Jackson](http://jackson.codehaus.org/) or [Jackson2](http://wiki.fasterxml.com/JacksonRelease20) or [Gson](http://code.google.com/p/google-gson/),
 or [Xml](http://simple.sourceforge.net/), or flat text files, or binary files, even using [ORM Lite](http://ormlite.com/sqlite_java_android_orm.shtml) (still in beta)
-* notifies your activities (or any other context) of the result of the network request if and only if they are still alive
+* notifies your activities (or any other context) of the result of the network request **with respect to their lifecycles**.
 * **no memory leaks** at all, like Android Loaders, unlike Android AsyncTasks
 * notifies your activities on their **UI Thread**
 * uses a simple but **robust** exception handling model
@@ -29,10 +29,13 @@ or [Xml](http://simple.sourceforge.net/), or flat text files, or binary files, e
 * supports aggregation of different web services
 * is a full featured replacement for long running AsyncTasks even they are not related to networking.
 * is **open source** ;) 
-* and **tested**
+* and **tested** (more than 160 tests)
 
-* RoboSpice is [under Continuous Integration on a CloudBees server](https://robospice.ci.cloudbees.com/job/Build%20RoboSpice/). Thanks to CloudBees.
-* RoboSpice is [under Quality control on Sonar's Nemo instance](http://nemo.sonarsource.org/dashboard/index/504442). Thanks to Sonar Source.
+RoboSpice is under Continuous Integration [on a CloudBees server](https://robospice.ci.cloudbees.com/job/Build-RoboSpice/) and [on a Travis server](https://travis-ci.org/octo-online/robospice/builds) Thanks to CloudBees and Travis.
+* Build Status on Travis: [![Build Status on Travis:](https://travis-ci.org/octo-online/robospice.png)](https://travis-ci.org/octo-online/robospice)
+* Build Status on CloudBees:[![Build Status on CloudBees:](https://robospice.ci.cloudbees.com/job/Build-Robospice/badge/icon)](https://robospice.ci.cloudbees.com/job/)
+
+RoboSpice is [under Quality control on Sonar's Nemo instance](http://nemo.sonarsource.org/dashboard/index/504442). Thanks to Sonar Source.
 
 To learn more about RoboSpice
 -----------------------------
