@@ -13,7 +13,7 @@ public class BitmapSpiceManager extends SpiceManager {
      * @param bitmapSpiceServiceClass
      *            the spice service to bind to.
      */
-    protected BitmapSpiceManager(Class<? extends BitmapSpiceService> bitmapSpiceServiceClass) {
+    public BitmapSpiceManager(Class<? extends BitmapSpiceService> bitmapSpiceServiceClass) {
         super(bitmapSpiceServiceClass);
     }
 
