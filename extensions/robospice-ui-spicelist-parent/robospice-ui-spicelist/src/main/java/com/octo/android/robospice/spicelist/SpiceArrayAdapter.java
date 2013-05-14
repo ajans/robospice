@@ -1,15 +1,13 @@
 package com.octo.android.robospice.spicelist;
 
-import java.io.File;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.octo.android.robospice.SpiceManager;
+import com.octo.android.robospice.persistence.DurationInMillis;
+import com.octo.android.robospice.persistence.exception.SpiceException;
+import com.octo.android.robospice.request.listener.RequestListener;
+import com.octo.android.robospice.request.simple.BitmapRequest;
 
 import roboguice.util.temp.Ln;
+
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -24,11 +22,14 @@ import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
-import com.octo.android.robospice.SpiceManager;
-import com.octo.android.robospice.persistence.DurationInMillis;
-import com.octo.android.robospice.persistence.exception.SpiceException;
-import com.octo.android.robospice.request.listener.RequestListener;
-import com.octo.android.robospice.request.simple.BitmapRequest;
+import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers
@@ -137,7 +138,11 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public final View getView(int position, View convertView, ViewGroup parent) {
+    /**
+     * If you override this method to create different types of itemviews based on the position or instance-type,
+     * make sure to call super.getView(position, yourItemView, parent) afterwards to update them the RoboSpice-way.
+     */
+    public View getView(int position, View convertView, ViewGroup parent) {
         SpiceListItemView<T> spiceListItemView;
 
         T currentItem = getItem(position);
