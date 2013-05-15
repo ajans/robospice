@@ -21,9 +21,9 @@ public class BitmapLruCache extends LruCache<Object, CacheItem<Bitmap>> {
     protected int sizeOf(Object key, CacheItem<Bitmap> value) {
         Bitmap data = value.getData();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1) {
-            return data.getRowBytes() * data.getHeight();
+            return data.getRowBytes() * data.getHeight() / 1024;
         } else {
-            return data.getByteCount();
+            return data.getByteCount() / 1024;
         }
     }
 }
