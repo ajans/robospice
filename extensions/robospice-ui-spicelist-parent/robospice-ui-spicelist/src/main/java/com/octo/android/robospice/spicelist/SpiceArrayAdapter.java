@@ -75,6 +75,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
     /** The default drawable to display during image loading from the network. */
     private Drawable defaultDrawable;
     private Animation animation;
+    private long imageCacheExpiryDuration = DurationInMillis.ALWAYS_EXPIRED;
 
     // ----------------------------
     // --- CONSTRUCTOR
@@ -277,6 +278,10 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         return null;
     }
 
+    public void setImageCacheExpiryDuration(long imageCacheExpiryDuration) {
+        this.imageCacheExpiryDuration = imageCacheExpiryDuration;
+    }
+    
     // ----------------------------------
     // INNER CLASSES
     // ----------------------------------
@@ -299,13 +304,14 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
             File tempThumbnailImageFile = bitmapRequest.getCacheFile();
             tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
+            String requestKey = tempThumbnailImageFile.getName();
             Ln.d("Filename : " + tempThumbnailImageFileName);
 
             if (!tempThumbnailImageFile.exists()) {
                 if (isNetworkFetchingAllowed) {
                     OctoImageRequestListener octoImageRequestListener = new OctoImageRequestListener(data, spiceListItemView,
-                        tempThumbnailImageFileName);
-                    spiceManagerBinary.execute(bitmapRequest, "THUMB_IMAGE_" + data.hashCode(), DurationInMillis.ALWAYS_EXPIRED,
+                            tempThumbnailImageFileName);
+                    spiceManagerBinary.execute(bitmapRequest, requestKey, SpiceArrayAdapter.this.imageCacheExpiryDuration,
                         octoImageRequestListener);
                 }
                 return false;
@@ -327,7 +333,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         private final WeakReference<ImageView> imageViewReference;
         String fileName = "";
         private T data;
-        private Animation animation;
+//        private Animation animation;
 
         public BitmapWorkerTask(ImageView imageView, T data) {
             // Use a WeakReference to ensure the ImageView can be garbage
@@ -339,8 +345,8 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(String... params) {
-            animation = AnimationUtils.loadAnimation(getContext(), android.R.anim.fade_in);
-            animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_mediumAnimTime));
+//            animation = AnimationUtils.loadAnimation(getContext(), android.R.anim.fade_in);
+//            animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_mediumAnimTime));
             fileName = params[0];
             return BitmapFactory.decodeFile(fileName, null);
         }
@@ -364,7 +370,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
                 if (this == bitmapWorkerTask && imageView != null) {
                     if (freshDrawableSet.contains(data)) {
                         freshDrawableSet.remove(data);
-                        imageView.startAnimation(animation);
+//                        imageView.startAnimation(animation);
                     }
                     imageView.setImageBitmap(bitmap);
                     // no used anymore.
