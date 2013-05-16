@@ -1,26 +1,11 @@
 package com.octo.android.robospice.request;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
-import roboguice.util.temp.Ln;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.SystemClock;
-
 import com.octo.android.robospice.SpiceService;
 import com.octo.android.robospice.exception.NetworkException;
 import com.octo.android.robospice.exception.NoNetworkException;
 import com.octo.android.robospice.exception.RequestCancelledException;
 import com.octo.android.robospice.networkstate.NetworkStateChecker;
+import com.octo.android.robospice.persistence.CacheManager;
 import com.octo.android.robospice.persistence.DurationInMillis;
 import com.octo.android.robospice.persistence.ICacheManager;
 import com.octo.android.robospice.persistence.exception.CacheLoadingException;
@@ -32,6 +17,24 @@ import com.octo.android.robospice.request.listener.RequestProgress;
 import com.octo.android.robospice.request.listener.RequestProgressListener;
 import com.octo.android.robospice.request.listener.RequestStatus;
 import com.octo.android.robospice.request.listener.SpiceServiceServiceListener;
+
+import roboguice.util.temp.Ln;
+
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * Delegate class of the {@link SpiceService}, easier to test than an Android {@link Service}.
@@ -452,17 +455,21 @@ public class RequestProcessor {
 
             final String resultMsg = spiceException == null ? "success" : "failure";
             Ln.v("Notifying " + listeners.size() + " listeners of request " + resultMsg);
-            for (final RequestListener<?> listener : listeners) {
-                if (listener != null) {
-                    @SuppressWarnings("unchecked")
-                    final RequestListener<T> listenerOfT = (RequestListener<T>) listener;
-                    Ln.v("Notifying %s", listener.getClass().getSimpleName());
-                    if (spiceException == null) {
-                        listenerOfT.onRequestSuccess(result);
-                    } else {
-                        listener.onRequestFailure(spiceException);
+            try {
+                for (final RequestListener<?> listener : listeners) {
+                    if (listener != null) {
+                        @SuppressWarnings("unchecked")
+                        final RequestListener<T> listenerOfT = (RequestListener<T>) listener;
+                        Ln.v("Notifying %s", listener.getClass().getSimpleName());
+                        if (spiceException == null) {
+                            listenerOfT.onRequestSuccess(result);
+                        } else {
+                            listener.onRequestFailure(spiceException);
+                        }
                     }
                 }
+            } catch (ConcurrentModificationException cme) {
+                Ln.e(cme, "Requestprocesor got a ConcurrentModificationException, aborting notification of request listeners for now");
             }
         }
     }
