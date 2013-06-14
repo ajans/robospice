@@ -123,7 +123,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         BitmapRequest request = createRequest(data, imageWidth, imageHeight);
         if (request != null) {
             new ThumbnailAsynTask(request).execute(data, spiceListItemView);
-        } else {
+        } else if (spiceListItemView.getImageView().getTag() == null) {
             spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
         }
     }
@@ -375,7 +375,12 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
             SpiceListItemView<Cursor> spiceListItemView = weakReferenceSpiceListItemView.get();
             if (spiceListItemView != null) {
                 Cursor data = spiceListItemView.getData();
-                new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
+                BitmapRequest request = createRequest(data, imageWidth, imageHeight);
+                if (request != null) {
+                    new ThumbnailAsynTask(request).execute(data, spiceListItemView);
+                } else if (spiceListItemView.getImageView().getTag() == null) {
+                    spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
+                }
             }
         }
 

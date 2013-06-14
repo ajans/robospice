@@ -134,7 +134,12 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         }
         imageWidth = Math.max(imageWidth, spiceListItemView.getImageView().getWidth());
         imageHeight = Math.max(imageHeight, spiceListItemView.getImageView().getHeight());
-        new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
+        BitmapRequest request = createRequest(data, imageWidth, imageHeight);
+        if (request != null) {
+            new ThumbnailAsynTask(request).execute(data, spiceListItemView);
+        } else if (spiceListItemView.getImageView().getTag() == null) {
+            spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -195,8 +200,8 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
     private void initialize(Context context, BitmapSpiceManager spiceManagerBinary) {
         this.spiceManagerBinary = spiceManagerBinary;
         defaultDrawable = context.getResources().getDrawable(android.R.drawable.picture_frame);
-        animation = AnimationUtils.loadAnimation(getContext(), android.R.anim.fade_in);
-        animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_mediumAnimTime));
+        animation = AnimationUtils.loadAnimation(context, android.R.anim.fade_in);
+        animation.setDuration(context.getResources().getInteger(android.R.integer.config_mediumAnimTime));
     }
 
     // ----------------------------
@@ -392,7 +397,12 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
             SpiceListItemView<T> spiceListItemView = weakReferenceSpiceListItemView.get();
             if (spiceListItemView != null) {
                 T data = spiceListItemView.getData();
-                new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
+                BitmapRequest request = createRequest(data, imageWidth, imageHeight);
+                if (request != null) {
+                    new ThumbnailAsynTask(request).execute(data, spiceListItemView);
+                } else if (spiceListItemView.getImageView().getTag() == null) {
+                    spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
+                }
             }
         }
 
