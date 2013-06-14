@@ -120,7 +120,12 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         }
         imageWidth = Math.max(imageWidth, spiceListItemView.getImageView().getWidth());
         imageHeight = Math.max(imageHeight, spiceListItemView.getImageView().getHeight());
-        new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
+        BitmapRequest request = createRequest(data, imageWidth, imageHeight);
+        if (request != null) {
+            new ThumbnailAsynTask(request).execute(data, spiceListItemView);
+        } else {
+            spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
+        }
     }
 
     @SuppressWarnings("unchecked")
