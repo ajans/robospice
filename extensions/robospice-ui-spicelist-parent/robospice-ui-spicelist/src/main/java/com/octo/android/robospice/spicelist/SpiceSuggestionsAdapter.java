@@ -179,7 +179,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         this.spiceManagerBinary = spiceManagerBinary;
         defaultDrawable = context.getResources().getDrawable(android.R.drawable.picture_frame);
         animation = AnimationUtils.loadAnimation(context, android.R.anim.fade_in);
-        animation.setDuration(context.getResources().getInteger(android.R.integer.config_mediumAnimTime));
+        animation.setDuration(context.getResources().getInteger(android.R.integer.config_shortAnimTime));
     }
 
     // ----------------------------
@@ -316,7 +316,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         private final WeakReference<ImageView> imageViewReference;
         String fileName = "";
         private Cursor data;
-//        private Animation animation;
+        private Animation animation;
 
         public BitmapWorkerTask(ImageView imageView, Cursor data) {
             // Use a WeakReference to ensure the ImageView can be garbage
@@ -328,8 +328,8 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         // Decode image in background.
         @Override
         protected Bitmap doInBackground(String... params) {
-//            animation = AnimationUtils.loadAnimation(mContext, android.R.anim.fade_in);
-//            animation.setDuration(mContext.getResources().getInteger(android.R.integer.config_mediumAnimTime));
+            animation = AnimationUtils.loadAnimation(mContext, android.R.anim.fade_in);
+            animation.setDuration(mContext.getResources().getInteger(android.R.integer.config_shortAnimTime));
             fileName = params[0];
             return BitmapFactory.decodeFile(fileName, null);
         }
@@ -353,7 +353,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
                 if (this == bitmapWorkerTask && imageView != null) {
                     if (freshDrawableSet.contains(data)) {
                         freshDrawableSet.remove(data);
-//                        imageView.startAnimation(animation);
+                        imageView.startAnimation(animation);
                     }
                     imageView.setImageBitmap(bitmap);
                     // no used anymore.
