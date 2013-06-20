@@ -25,10 +25,10 @@ import android.widget.ImageView;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -65,10 +65,8 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
      * List of event listeners to get notified of network fetching allowed
      * changes.
      */
-//    private List<NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerMap = Collections
-//        .synchronizedList(new ArrayList<NetworkFetchingAuthorizationStateChangeAdapter>());
-    private Map<SpiceListItemView<Cursor>, NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerMap = Collections
-            .synchronizedMap(new HashMap<SpiceListItemView<Cursor>, NetworkFetchingAuthorizationStateChangeAdapter>());
+    private List<NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerList = Collections
+        .synchronizedList(new ArrayList<NetworkFetchingAuthorizationStateChangeAdapter>());
     /**
      * Contains all images that have been added recently to the list. They will
      * be animated when first displayed.
@@ -122,12 +120,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
         }
         imageWidth = Math.max(imageWidth, spiceListItemView.getImageView().getWidth());
         imageHeight = Math.max(imageHeight, spiceListItemView.getImageView().getHeight());
-        BitmapRequest request = createRequest(data, imageWidth, imageHeight);
-        if (request != null) {
-            new ThumbnailAsynTask(request).execute(data, spiceListItemView);
-        } else if (spiceListItemView.getImageView().getTag() == null) {
-            spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
-        }
+        new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
     }
 
     @SuppressWarnings("unchecked")
@@ -156,19 +149,21 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
     // ----------------------------
 
     private void addSpiceListItemView(SpiceListItemView<Cursor> spiceListItemView) {
-        this.networkFetchingAuthorizationStateChangeListenerMap.put(spiceListItemView, new NetworkFetchingAuthorizationStateChangeAdapter(spiceListItemView));
+        this.networkFetchingAuthorizationStateChangeListenerList.add(new NetworkFetchingAuthorizationStateChangeAdapter(spiceListItemView));
     }
 
     private boolean registered(SpiceListItemView<Cursor> view) {
-        if (networkFetchingAuthorizationStateChangeListenerMap.containsKey(view)) {
-            return true;
+        for (NetworkFetchingAuthorizationStateChangeAdapter listener : networkFetchingAuthorizationStateChangeListenerList) {
+            if (listener.getView() == view) {
+                return true;
+            }
         }
         return false;
     }
 
     private void fireOnNetworkFetchingAllowedChange() {
-        synchronized (networkFetchingAuthorizationStateChangeListenerMap) {
-            for (NetworkFetchingAuthorizationStateChangeAdapter networkFetchingAuthorizationStateChangeListener : networkFetchingAuthorizationStateChangeListenerMap.values()) {
+        synchronized (networkFetchingAuthorizationStateChangeListenerList) {
+            for (NetworkFetchingAuthorizationStateChangeAdapter networkFetchingAuthorizationStateChangeListener : networkFetchingAuthorizationStateChangeListenerList) {
                 Ln.d("calling state change listener");
                 networkFetchingAuthorizationStateChangeListener.onNetworkFetchingAllowedChange(isNetworkFetchingAllowed);
             }
@@ -375,12 +370,7 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
             SpiceListItemView<Cursor> spiceListItemView = weakReferenceSpiceListItemView.get();
             if (spiceListItemView != null) {
                 Cursor data = spiceListItemView.getData();
-                BitmapRequest request = createRequest(data, imageWidth, imageHeight);
-                if (request != null) {
-                    new ThumbnailAsynTask(request).execute(data, spiceListItemView);
-                } else if (spiceListItemView.getImageView().getTag() == null) {
-                    spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
-                }
+                new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
             }
         }
 

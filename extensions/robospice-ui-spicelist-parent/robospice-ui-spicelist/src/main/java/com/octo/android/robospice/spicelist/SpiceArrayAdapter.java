@@ -1,13 +1,15 @@
 package com.octo.android.robospice.spicelist;
 
-import com.octo.android.robospice.SpiceManager;
-import com.octo.android.robospice.persistence.DurationInMillis;
-import com.octo.android.robospice.persistence.exception.SpiceException;
-import com.octo.android.robospice.request.listener.RequestListener;
-import com.octo.android.robospice.request.simple.BitmapRequest;
+import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import roboguice.util.temp.Ln;
-
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -22,16 +24,11 @@ import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
-import java.io.File;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.octo.android.robospice.SpiceManager;
+import com.octo.android.robospice.persistence.DurationInMillis;
+import com.octo.android.robospice.persistence.exception.SpiceException;
+import com.octo.android.robospice.request.listener.RequestListener;
+import com.octo.android.robospice.request.simple.BitmapRequest;
 
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers
@@ -67,10 +64,8 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
      * List of event listeners to get notified of network fetching allowed
      * changes.
      */
-//    private List<NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerMap = Collections
-//        .synchronizedList(new ArrayList<NetworkFetchingAuthorizationStateChangeAdapter>());
-    private Map<SpiceListItemView<T>, NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerMap = Collections
-            .synchronizedMap(new HashMap<SpiceListItemView<T>, NetworkFetchingAuthorizationStateChangeAdapter>());
+    private List<NetworkFetchingAuthorizationStateChangeAdapter> networkFetchingAuthorizationStateChangeListenerList = Collections
+        .synchronizedList(new ArrayList<NetworkFetchingAuthorizationStateChangeAdapter>());
     /**
      * Contains all images that have been added recently to the list. They will
      * be animated when first displayed.
@@ -138,12 +133,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         }
         imageWidth = Math.max(imageWidth, spiceListItemView.getImageView().getWidth());
         imageHeight = Math.max(imageHeight, spiceListItemView.getImageView().getHeight());
-        BitmapRequest request = createRequest(data, imageWidth, imageHeight);
-        if (request != null) {
-            new ThumbnailAsynTask(request).execute(data, spiceListItemView);
-        } else if (spiceListItemView.getImageView().getTag() == null) {
-            spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
-        }
+        new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
     }
 
     @SuppressWarnings("unchecked")
@@ -180,19 +170,21 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
     // ----------------------------
 
     private void addSpiceListItemView(SpiceListItemView<T> spiceListItemView) {
-        this.networkFetchingAuthorizationStateChangeListenerMap.put(spiceListItemView, new NetworkFetchingAuthorizationStateChangeAdapter(spiceListItemView));
+        this.networkFetchingAuthorizationStateChangeListenerList.add(new NetworkFetchingAuthorizationStateChangeAdapter(spiceListItemView));
     }
 
     private boolean registered(SpiceListItemView<T> view) {
-        if (networkFetchingAuthorizationStateChangeListenerMap.containsKey(view)) {
-            return true;
+        for (NetworkFetchingAuthorizationStateChangeAdapter listener : networkFetchingAuthorizationStateChangeListenerList) {
+            if (listener.getView() == view) {
+                return true;
+            }
         }
         return false;
     }
 
     private void fireOnNetworkFetchingAllowedChange() {
-        synchronized (networkFetchingAuthorizationStateChangeListenerMap) {
-            for (NetworkFetchingAuthorizationStateChangeAdapter networkFetchingAuthorizationStateChangeListener : networkFetchingAuthorizationStateChangeListenerMap.values()) {
+        synchronized (networkFetchingAuthorizationStateChangeListenerList) {
+            for (NetworkFetchingAuthorizationStateChangeAdapter networkFetchingAuthorizationStateChangeListener : networkFetchingAuthorizationStateChangeListenerList) {
                 Ln.d("calling state change listener");
                 networkFetchingAuthorizationStateChangeListener.onNetworkFetchingAllowedChange(isNetworkFetchingAllowed);
             }
@@ -202,8 +194,8 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
     private void initialize(Context context, BitmapSpiceManager spiceManagerBinary) {
         this.spiceManagerBinary = spiceManagerBinary;
         defaultDrawable = context.getResources().getDrawable(android.R.drawable.picture_frame);
-        animation = AnimationUtils.loadAnimation(context, android.R.anim.fade_in);
-        animation.setDuration(context.getResources().getInteger(android.R.integer.config_shortAnimTime));
+        animation = AnimationUtils.loadAnimation(getContext(), android.R.anim.fade_in);
+        animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_mediumAnimTime));
     }
 
     // ----------------------------
@@ -353,7 +345,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
         @Override
         protected Bitmap doInBackground(String... params) {
             animation = AnimationUtils.loadAnimation(getContext(), android.R.anim.fade_in);
-            animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_shortAnimTime));
+            animation.setDuration(getContext().getResources().getInteger(android.R.integer.config_mediumAnimTime));
             fileName = params[0];
             return BitmapFactory.decodeFile(fileName, null);
         }
@@ -399,12 +391,7 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
             SpiceListItemView<T> spiceListItemView = weakReferenceSpiceListItemView.get();
             if (spiceListItemView != null) {
                 T data = spiceListItemView.getData();
-                BitmapRequest request = createRequest(data, imageWidth, imageHeight);
-                if (request != null) {
-                    new ThumbnailAsynTask(request).execute(data, spiceListItemView);
-                } else if (spiceListItemView.getImageView().getTag() == null) {
-                    spiceListItemView.getImageView().setImageDrawable(defaultDrawable);
-                }
+                new ThumbnailAsynTask(createRequest(data, imageWidth, imageHeight)).execute(data, spiceListItemView);
             }
         }
 
