@@ -1,22 +1,26 @@
 package com.octo.android.robospice.request.simple;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import com.octo.android.robospice.request.ProgressByteProcessor;
+import com.octo.android.robospice.request.SpiceRequest;
 
 import org.apache.commons.io.IOUtils;
 
 import roboguice.util.temp.Ln;
+
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
-import com.octo.android.robospice.request.ProgressByteProcessor;
-import com.octo.android.robospice.request.SpiceRequest;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * Downloads big images in size as bitmaps. All data is passed to the listener
@@ -116,9 +120,7 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
             boolean isTouchedNow = cacheFile.setLastModified(System
                 .currentTimeMillis());
             if (!isTouchedNow) {
-                Ln.d(
-                    "Modification time of file %s could not be changed normally ",
-                    cacheFile.getAbsolutePath());
+                fileSetLastModifiedWorkaround(cacheFile);
             }
             fileOutputStream = new FileOutputStream(cacheFile);
             readBytes(inputStream, new ProgressByteProcessor(this,
@@ -128,6 +130,32 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
         }
     }
 
+    // workaround for https://code.google.com/p/android/issues/detail?id=18624
+    private boolean fileSetLastModifiedWorkaround(File cacheFile) {
+        RandomAccessFile raf = null;
+        try {
+            raf = new RandomAccessFile(cacheFile, "rw");
+        } catch (FileNotFoundException e) {
+            Log.e(getClass().getSimpleName(),
+                    String.format("Modification time of file %s could not be changed normally, file note found!",
+                    cacheFile.getAbsolutePath()));
+            return false;
+        }
+        long length;
+        try {
+            length = raf.length();
+            raf.setLength(length + 1);
+            raf.setLength(length);
+            raf.close();
+        } catch (IOException e) {
+            Log.e(getClass().getSimpleName(),
+                    String.format("Modification time of file %s could not be changed normally, file could not be modified!",
+                    cacheFile.getAbsolutePath()));
+            return false;
+        }
+        return true;
+    }
+    
     /**
      * Inspired from Guava com.google.common.io.ByteStreams
      */
