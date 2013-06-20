@@ -422,11 +422,15 @@ public class RequestProcessor {
             }
 
             Ln.v("Notifying " + listeners.size() + " listeners of progress " + progress);
-            for (final RequestListener<?> listener : listeners) {
-                if (listener != null && listener instanceof RequestProgressListener) {
-                    Ln.v("Notifying %s", listener.getClass().getSimpleName());
-                    ((RequestProgressListener) listener).onRequestProgressUpdate(progress);
+            try  {
+                for (final RequestListener<?> listener : listeners) {
+                    if (listener != null && listener instanceof RequestProgressListener) {
+                        Ln.v("Notifying %s", listener.getClass().getSimpleName());
+                        ((RequestProgressListener) listener).onRequestProgressUpdate(progress);
+                    }
                 }
+            } catch (ConcurrentModificationException cme) {
+                Ln.e(cme, "Requestprocesor got a ConcurrentModificationException, aborting notification of request listeners for now");
             }
         }
     }
