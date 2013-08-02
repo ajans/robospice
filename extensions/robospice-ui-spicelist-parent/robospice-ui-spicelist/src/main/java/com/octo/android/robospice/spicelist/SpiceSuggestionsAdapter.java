@@ -280,6 +280,9 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
             data = (Cursor) params[0];
             spiceListItemView = (SpiceListItemView<Cursor>) params[1];
 
+            if (bitmapRequest == null) {
+                return false;
+            }
             File tempThumbnailImageFile = bitmapRequest.getCacheFile();
             tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
             String requestKey = tempThumbnailImageFile.getName();
