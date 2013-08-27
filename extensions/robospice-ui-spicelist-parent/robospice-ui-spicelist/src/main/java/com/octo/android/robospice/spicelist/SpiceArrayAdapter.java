@@ -1,15 +1,13 @@
 package com.octo.android.robospice.spicelist;
 
-import java.io.File;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.octo.android.robospice.SpiceManager;
+import com.octo.android.robospice.persistence.DurationInMillis;
+import com.octo.android.robospice.persistence.exception.SpiceException;
+import com.octo.android.robospice.request.listener.RequestListener;
+import com.octo.android.robospice.request.simple.BitmapRequest;
 
 import roboguice.util.temp.Ln;
+
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -24,11 +22,14 @@ import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
-import com.octo.android.robospice.SpiceManager;
-import com.octo.android.robospice.persistence.DurationInMillis;
-import com.octo.android.robospice.persistence.exception.SpiceException;
-import com.octo.android.robospice.request.listener.RequestListener;
-import com.octo.android.robospice.request.simple.BitmapRequest;
+import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers
@@ -320,6 +321,10 @@ public abstract class SpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
         @Override
         protected void onPostExecute(Boolean isImageAvailableInCache) {
+            if (spiceListItemView == null) {
+                return;
+            }
+            
             if (isImageAvailableInCache) {
                 loadBitmapAsynchronously(data, spiceListItemView.getImageView(), tempThumbnailImageFileName);
             } else {
