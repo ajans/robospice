@@ -7,8 +7,11 @@ import org.apache.commons.io.IOUtils;
 
 import roboguice.util.temp.Ln;
 
+import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.os.Build;
 import android.util.Log;
 
 import java.io.File;
@@ -30,6 +33,9 @@ import java.net.URL;
 public class BitmapRequest extends SpiceRequest<Bitmap> {
 
     private static final int BUF_SIZE = 4096;
+
+    private static final int DEFAULT_MAX_BITMAP_WIDTH = 2000;
+    private static final int DEFAULT_MAX_BITMAP_HEIGHT = 2000;
 
     private String url;
     private BitmapFactory.Options options;
@@ -84,13 +90,38 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
 
             if (width != -1 && height != -1) {
                 this.options = new BitmapFactory.Options();
+                options.inScaled = false;
+                options.inPurgeable = true;
+                options.inInputShareable = true;
                 options.inJustDecodeBounds = true;
                 BitmapFactory.decodeFile(cacheFile.getAbsolutePath(), options);
                 options.inSampleSize = calculateInSampleSize(options, width,
                     height);
                 options.inJustDecodeBounds = false;
-                return BitmapFactory.decodeFile(cacheFile.getAbsolutePath(),
+                options.inScaled = false;
+                options.inPurgeable = true;
+                options.inInputShareable = true;
+                Bitmap unscaledBitmap = BitmapFactory.decodeFile(cacheFile.getAbsolutePath(),
                     options);
+                int unscaledWidth = unscaledBitmap.getWidth();
+                int unscaledHeight = unscaledBitmap.getHeight();
+                if (unscaledWidth > getMaximumPossibleBitmapWidth()
+                        || unscaledHeight > getMaximumPossibleBitmapHeight()) {
+                    if (unscaledWidth > unscaledHeight) {
+                        int newWidth = getMaximumPossibleBitmapWidth();
+                        float scaleDownRatio = (float) newWidth / (float) unscaledWidth;
+                        int newHeight = Math.round((float) (unscaledHeight * scaleDownRatio));
+                        Bitmap scaledBitmap = Bitmap.createScaledBitmap(unscaledBitmap, newWidth, newHeight, true);
+                        return scaledBitmap;
+                    } else {
+                        int newHeight = getMaximumPossibleBitmapHeight();
+                        float scaleDownRatio = (float) newHeight / (float) unscaledHeight;
+                        int newWidth = Math.round((float) (unscaledWidth * scaleDownRatio));
+                        Bitmap scaledBitmap = Bitmap.createScaledBitmap(unscaledBitmap, newWidth, newHeight, true);
+                        return scaledBitmap;
+                    }
+                }
+                return unscaledBitmap;
             } else {
                 return BitmapFactory.decodeFile(cacheFile.getAbsolutePath(),
                     options);
@@ -104,6 +135,26 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private int getMaximumPossibleBitmapWidth() {
+        Canvas canvas = new Canvas();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && canvas.isHardwareAccelerated()) {
+            return canvas.getMaximumBitmapWidth();
+        } else {
+            return DEFAULT_MAX_BITMAP_WIDTH;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private int getMaximumPossibleBitmapHeight() {
+        Canvas canvas = new Canvas();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && canvas.isHardwareAccelerated()) {
+            return canvas.getMaximumBitmapHeight();
+        } else {
+            return DEFAULT_MAX_BITMAP_HEIGHT;
+        }
+    }
+    
     protected final String getUrl() {
         return this.url;
     }
