@@ -123,6 +123,13 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
                 }
                 return unscaledBitmap;
             } else {
+                if (this.options == null) {
+                    this.options = new BitmapFactory.Options();
+                }
+
+                options.inScaled = false;
+                options.inPurgeable = true;
+                options.inInputShareable = true;
                 return BitmapFactory.decodeFile(cacheFile.getAbsolutePath(),
                     options);
             }
@@ -154,7 +161,7 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
             return DEFAULT_MAX_BITMAP_HEIGHT;
         }
     }
-    
+
     protected final String getUrl() {
         return this.url;
     }
@@ -206,7 +213,7 @@ public class BitmapRequest extends SpiceRequest<Bitmap> {
         }
         return true;
     }
-    
+
     /**
      * Inspired from Guava com.google.common.io.ByteStreams
      */
