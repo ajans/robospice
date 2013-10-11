@@ -212,9 +212,9 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
     }
 
     protected void loadBitmapAsynchronously(Cursor octo, ImageView thumbImageView, String tempThumbnailImageFileName) {
-        if (thumbImageView.getTag() != null && thumbImageView.getTag().equals(tempThumbnailImageFileName)) {
-            return;
-        }
+//        if (thumbImageView.getTag() != null && thumbImageView.getTag().equals(tempThumbnailImageFileName)) {
+//            return;
+//        }
 
         if (cancelPotentialWork(tempThumbnailImageFileName, thumbImageView)) {
             final BitmapWorkerTask task = new BitmapWorkerTask(thumbImageView, octo);
@@ -280,9 +280,6 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
             data = (Cursor) params[0];
             spiceListItemView = (SpiceListItemView<Cursor>) params[1];
 
-            if (bitmapRequest == null) {
-                return false;
-            }
             File tempThumbnailImageFile = bitmapRequest.getCacheFile();
             tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
             String requestKey = tempThumbnailImageFile.getName();
@@ -302,6 +299,10 @@ public abstract class SpiceSuggestionsAdapter extends CursorAdapter {
 
         @Override
         protected void onPostExecute(Boolean isImageAvailableInCache) {
+            if (spiceListItemView == null) {
+                return;
+            }
+            
             if (isImageAvailableInCache) {
                 loadBitmapAsynchronously(data, spiceListItemView.getImageView(), tempThumbnailImageFileName);
             } else {
