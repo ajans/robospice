@@ -1,5 +1,23 @@
 package com.octo.android.robospice;
 
+import com.octo.android.robospice.SpiceService.SpiceServiceBinder;
+import com.octo.android.robospice.persistence.CacheManager;
+import com.octo.android.robospice.persistence.DurationInMillis;
+import com.octo.android.robospice.persistence.exception.CacheLoadingException;
+import com.octo.android.robospice.request.CachedSpiceRequest;
+import com.octo.android.robospice.request.SpiceRequest;
+import com.octo.android.robospice.request.listener.RequestListener;
+import com.octo.android.robospice.request.listener.SpiceServiceServiceListener;
+
+import roboguice.util.temp.Ln;
+
+import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,22 +34,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-
-import roboguice.util.temp.Ln;
-import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
-
-import com.octo.android.robospice.SpiceService.SpiceServiceBinder;
-import com.octo.android.robospice.persistence.DurationInMillis;
-import com.octo.android.robospice.persistence.exception.CacheLoadingException;
-import com.octo.android.robospice.request.CachedSpiceRequest;
-import com.octo.android.robospice.request.SpiceRequest;
-import com.octo.android.robospice.request.listener.RequestListener;
-import com.octo.android.robospice.request.listener.SpiceServiceServiceListener;
 
 /**
  * The instances of this class allow to acces the {@link SpiceService}. <br/>
@@ -197,7 +199,7 @@ public class SpiceManager implements Runnable {
     private void sendRequestToService(final CachedSpiceRequest<?> spiceRequest) {
         lockSendRequestsToService.lock();
         try {
-            if (spiceRequest != null) {
+            if (spiceRequest != null && spiceService != null) {
                 final Set<RequestListener<?>> listRequestListener = mapRequestToLaunchToRequestListener.remove(spiceRequest);
                 mapPendingRequestToRequestListener.put(spiceRequest, listRequestListener);
                 Ln.d("Sending request to service : " + spiceRequest.getClass().getSimpleName());
