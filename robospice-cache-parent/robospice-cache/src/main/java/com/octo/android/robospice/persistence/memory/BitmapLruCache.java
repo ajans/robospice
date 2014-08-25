@@ -12,6 +12,8 @@ import android.support.v4.util.LruCache;
  * @author SNI
  */
 public class BitmapLruCache extends LruCache<Object, CacheItem<Bitmap>> {
+    private static final int BYTES_PER_KBYTE = 1024;
+
     public BitmapLruCache(int maxSize) {
         super(maxSize);
     }
@@ -21,9 +23,9 @@ public class BitmapLruCache extends LruCache<Object, CacheItem<Bitmap>> {
     protected int sizeOf(Object key, CacheItem<Bitmap> value) {
         Bitmap data = value.getData();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1) {
-            return data.getRowBytes() * data.getHeight() / 1024;
+            return data.getRowBytes() * data.getHeight() / BYTES_PER_KBYTE;
         } else {
-            return data.getByteCount() / 1024;
+            return data.getByteCount() / BYTES_PER_KBYTE;
         }
     }
 }
