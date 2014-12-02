@@ -5,6 +5,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +35,7 @@ import com.octo.android.robospice.request.simple.IBitmapRequest;
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers to update ImageViews
  * contained in {@link SpiceListItemView} instances with images loaded from the network. All you
- * have to do is to Override {@link #createRequest(Object)} to define a bitmapRequest for each
+ * have to do is to Override {@link #createRequest(T, int, int, int)} to define a bitmapRequest for each
  * object in the list that is associated an image to display. Also please note that in your
  * {@link #getView(int, android.view.View, android.view.ViewGroup)} method, you must call
  * {@link #updateListItemViewAsynchronously(Object, SpiceListItemView)} in order for your
@@ -69,6 +70,7 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
     private Set<Object> freshDrawableSet = new HashSet<Object>();
     /** The default drawable to display during image loading from the network. */
     protected Drawable defaultDrawable;
+    private HashMap<Integer, Long> imageCacheExpiryDurationTable = new HashMap<Integer, Long>();
 
     // ----------------------------
     // --- CONSTRUCTOR
@@ -109,7 +111,7 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
     /**
      * Updates a {@link SpiceListItemView} containing some data. The method
-     * {@link #createRequest(Object)} will be applied to data to know which bitmapRequest to execute
+     * {@link #createRequest(T, int, int, int)} will be applied to data to know which bitmapRequest to execute
      * to get data from network if needed. This method must be called during
      * {@link #getView(int, android.view.View, android.view.ViewGroup)}.
      * @param data
@@ -150,8 +152,21 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
         return (View) spiceListItemView;
     }
 
+    public void setImageCacheExpiryDuration(final int imageIndex, long imageCacheExpiryDuration) {
+        this.imageCacheExpiryDurationTable.put(imageIndex, imageCacheExpiryDuration);
+    }
+
+    private Long getImageCacheExpiryDuration(int imageIndex) {
+        Long imageCacheExpiryDuration = imageCacheExpiryDurationTable.get(imageIndex);
+        if (imageCacheExpiryDuration == null) {
+            imageCacheExpiryDuration = DurationInMillis.ALWAYS_EXPIRED;
+            imageCacheExpiryDurationTable.put(imageIndex, imageCacheExpiryDuration);
+        }
+        return imageCacheExpiryDuration;
+    }
+
     public final void performBitmapRequestAsync(final SpiceListItemView<T> spiceListItemView, final T data, final int imageIndex) {
-        new ThumbnailAsynTask(createRequest(data, imageIndex, imageWidth, imageHeight)).execute(data, spiceListItemView, imageIndex);
+        new ThumbnailAsyncTask(createRequest(data, imageIndex, imageWidth, imageHeight)).execute(data, spiceListItemView, imageIndex);
     }
 
     public abstract SpiceListItemView<T> createView(Context context, ViewGroup parent);
@@ -187,6 +202,9 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
     private void initialize(final Context context, final SpiceManager spiceManagerBinary) {
         this.spiceManagerBinary = spiceManagerBinary;
         defaultDrawable = context.getResources().getDrawable(android.R.drawable.picture_frame);
+        // default for imageCacheExpiryDuration
+        imageCacheExpiryDurationTable.clear();
+        imageCacheExpiryDurationTable.put(0, DurationInMillis.ALWAYS_EXPIRED);
     }
 
     // ----------------------------
@@ -209,7 +227,7 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
         @Override
         public final void onRequestFailure(final SpiceException spiceException) {
-            Ln.e(SpiceListItemView.class.getName(), "Unable to retrive image", spiceException);
+            Ln.e(SpiceListItemView.class.getName(), "Unable to retrieve image", spiceException);
             thumbImageView.setImageDrawable(defaultDrawable);
         }
 
@@ -223,10 +241,6 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
     }
 
     protected void loadBitmapAsynchronously(final T octo, final ImageView thumbImageView, final String tempThumbnailImageFileName) {
-        if (thumbImageView.getTag() != null && thumbImageView.getTag().equals(tempThumbnailImageFileName)) {
-            return;
-        }
-
         if (cancelPotentialWork(tempThumbnailImageFileName, thumbImageView)) {
             final BitmapWorkerTask task = new BitmapWorkerTask(thumbImageView, octo);
             task.fileName = tempThumbnailImageFileName;
@@ -274,7 +288,7 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
     // ----------------------------------
     // INNER CLASSES
     // ----------------------------------
-    protected class ThumbnailAsynTask extends AsyncTask<Object, Void, Boolean> {
+    protected class ThumbnailAsyncTask extends AsyncTask<Object, Void, Void> {
 
         private T data;
         private SpiceListItemView<T> spiceListItemView;
@@ -282,41 +296,41 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
         private IBitmapRequest bitmapRequest;
         private int imageIndex;
 
-        public ThumbnailAsynTask(final IBitmapRequest request) {
+        public ThumbnailAsyncTask(final IBitmapRequest request) {
             this.bitmapRequest = request;
         }
 
         @SuppressWarnings("unchecked")
         @Override
-        protected final Boolean doInBackground(final Object... params) {
+        protected final Void doInBackground(final Object... params) {
             data = (T) params[0];
             spiceListItemView = (SpiceListItemView<T>) params[1];
             imageIndex = (Integer) params[2];
 
-            if (bitmapRequest != null) {
-
-                File tempThumbnailImageFile = bitmapRequest.getCacheFile();
-                tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
-                Ln.d("Filename : " + tempThumbnailImageFileName);
-
-                if (!tempThumbnailImageFile.exists()) {
-                    if (isNetworkFetchingAllowed) {
-                        ImageRequestListener imageRequestListener = new ImageRequestListener(data, spiceListItemView, imageIndex, tempThumbnailImageFileName);
-                        spiceManagerBinary.execute((SpiceRequest<Bitmap>) bitmapRequest, "THUMB_IMAGE_" + data.hashCode(), DurationInMillis.ALWAYS_EXPIRED, imageRequestListener);
-                    }
-                    return false;
-                }
+            if (bitmapRequest == null) {
+                return null;
             }
-            return true;
+
+            File tempThumbnailImageFile = bitmapRequest.getCacheFile();
+            tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
+            Ln.d("Filename : " + tempThumbnailImageFileName);
+
+            if (isNetworkFetchingAllowed) {
+                ImageRequestListener imageRequestListener = new ImageRequestListener(data, spiceListItemView, imageIndex, tempThumbnailImageFileName);
+                Long imageCacheExpiryDuration = getImageCacheExpiryDuration(imageIndex);
+                spiceManagerBinary.execute((SpiceRequest<Bitmap>) bitmapRequest, "THUMB_IMAGE_" + data.hashCode() + "_" + imageIndex, imageCacheExpiryDuration, imageRequestListener);
+            }
+
+            return null;
         }
 
         @Override
-        protected final void onPostExecute(final Boolean isImageAvailableInCache) {
-            if (isImageAvailableInCache) {
-                loadBitmapAsynchronously(data, spiceListItemView.getImageView(imageIndex), tempThumbnailImageFileName);
-            } else {
-                spiceListItemView.getImageView(imageIndex).setImageDrawable(defaultDrawable);
+        protected final void onPostExecute(Void voidResult) {
+            if (spiceListItemView == null) {
+                return;
             }
+
+            spiceListItemView.getImageView(imageIndex).setImageDrawable(defaultDrawable);
         }
     }
 
