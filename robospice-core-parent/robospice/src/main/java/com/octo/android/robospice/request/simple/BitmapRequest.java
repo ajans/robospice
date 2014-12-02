@@ -1,10 +1,12 @@
 package com.octo.android.robospice.request.simple;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -126,13 +128,32 @@ public class BitmapRequest extends SpiceRequest<Bitmap> implements IBitmapReques
             // touch
             boolean isTouchedNow = cacheFile.setLastModified(System.currentTimeMillis());
             if (!isTouchedNow) {
-                Ln.d("Modification time of file %s could not be changed normally ", cacheFile.getAbsolutePath());
+                fileSetLastModifiedWorkaround(cacheFile);
             }
             fileOutputStream = new FileOutputStream(cacheFile);
             readBytes(inputStream, new ProgressByteProcessor(this, fileOutputStream, contentLength));
         } finally {
             IOUtils.closeQuietly(fileOutputStream);
         }
+    }
+
+    // workaround for https://code.google.com/p/android/issues/detail?id=18624
+    private boolean fileSetLastModifiedWorkaround(File cacheFile) {
+        RandomAccessFile raf = null;
+        try {
+            raf = new RandomAccessFile(cacheFile, "rw");
+            long length;
+            length = raf.length();
+            raf.setLength(length + 1);
+            raf.setLength(length);
+            raf.close();
+        } catch (Exception e) {
+            Ln.d(
+                    "Modification time of file %s could not be changed normally ",
+                    cacheFile.getAbsolutePath());
+            return false;
+        }
+        return true;
     }
 
     /**
