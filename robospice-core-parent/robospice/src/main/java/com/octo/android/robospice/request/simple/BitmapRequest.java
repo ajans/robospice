@@ -2,13 +2,13 @@ package com.octo.android.robospice.request.simple;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-
 import com.octo.android.robospice.request.ProgressByteProcessor;
 import com.octo.android.robospice.request.SpiceRequest;
-
 import org.apache.commons.io.IOUtils;
+import roboguice.util.temp.Ln;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +17,6 @@ import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-
-import roboguice.util.temp.Ln;
 
 /**
  * Downloads big images in size as bitmaps. All data is passed to the listener
@@ -142,12 +140,16 @@ public class BitmapRequest extends SpiceRequest<Bitmap> implements IBitmapReques
         RandomAccessFile raf = null;
         try {
             raf = new RandomAccessFile(cacheFile, "rw");
-            long length;
-            length = raf.length();
+            long length = raf.length();
             raf.setLength(length + 1);
             raf.setLength(length);
             raf.close();
-        } catch (Exception e) {
+        } catch (FileNotFoundException e) {
+            Ln.d(
+                    "Modification time of file %s could not be changed normally ",
+                    cacheFile.getAbsolutePath());
+            return false;
+        } catch (IOException e) {
             Ln.d(
                     "Modification time of file %s could not be changed normally ",
                     cacheFile.getAbsolutePath());
