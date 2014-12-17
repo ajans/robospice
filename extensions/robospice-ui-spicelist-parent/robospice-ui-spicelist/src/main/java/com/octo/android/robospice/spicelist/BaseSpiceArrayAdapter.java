@@ -1,16 +1,5 @@
 package com.octo.android.robospice.spicelist;
 
-import java.io.File;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import roboguice.util.temp.Ln;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -24,13 +13,23 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-
 import com.octo.android.robospice.SpiceManager;
 import com.octo.android.robospice.persistence.DurationInMillis;
 import com.octo.android.robospice.persistence.exception.SpiceException;
 import com.octo.android.robospice.request.SpiceRequest;
 import com.octo.android.robospice.request.listener.RequestListener;
 import com.octo.android.robospice.request.simple.IBitmapRequest;
+import roboguice.util.temp.Ln;
+
+import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers to update ImageViews
@@ -288,7 +287,7 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
     // ----------------------------------
     // INNER CLASSES
     // ----------------------------------
-    protected class ThumbnailAsyncTask extends AsyncTask<Object, Void, Void> {
+    protected class ThumbnailAsyncTask extends AsyncTask<Object, Void, Boolean> {
 
         private T data;
         private SpiceListItemView<T> spiceListItemView;
@@ -302,18 +301,23 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
 
         @SuppressWarnings("unchecked")
         @Override
-        protected final Void doInBackground(final Object... params) {
+        protected final Boolean doInBackground(final Object... params) {
             data = (T) params[0];
             spiceListItemView = (SpiceListItemView<T>) params[1];
             imageIndex = (Integer) params[2];
 
             if (bitmapRequest == null) {
-                return null;
+                return false;
             }
 
             File tempThumbnailImageFile = bitmapRequest.getCacheFile();
             tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
             Ln.d("Filename : " + tempThumbnailImageFileName);
+
+            boolean isImageAvailableInCache = false;
+            if (tempThumbnailImageFile.exists()) {
+                isImageAvailableInCache = true;
+            }
 
             if (isNetworkFetchingAllowed) {
                 ImageRequestListener imageRequestListener = new ImageRequestListener(data, spiceListItemView, imageIndex, tempThumbnailImageFileName);
@@ -321,16 +325,20 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
                 spiceManagerBinary.execute((SpiceRequest<Bitmap>) bitmapRequest, "THUMB_IMAGE_" + data.hashCode() + "_" + imageIndex, imageCacheExpiryDuration, imageRequestListener);
             }
 
-            return null;
+            return isImageAvailableInCache;
         }
 
         @Override
-        protected final void onPostExecute(Void voidResult) {
+        protected final void onPostExecute(Boolean isImageAvailableInCache) {
             if (spiceListItemView == null) {
                 return;
             }
 
-            spiceListItemView.getImageView(imageIndex).setImageDrawable(defaultDrawable);
+            if (isImageAvailableInCache) {
+                loadBitmapAsynchronously(data, spiceListItemView.getImageView(imageIndex), tempThumbnailImageFileName);
+            } else {
+                spiceListItemView.getImageView(imageIndex).setImageDrawable(defaultDrawable);
+            }
         }
     }
 
