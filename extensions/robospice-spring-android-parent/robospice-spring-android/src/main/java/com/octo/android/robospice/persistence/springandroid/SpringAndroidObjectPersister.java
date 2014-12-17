@@ -1,20 +1,17 @@
 package com.octo.android.robospice.persistence.springandroid;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.CharEncoding;
-import org.apache.commons.lang3.StringUtils;
-
-import roboguice.util.temp.Ln;
 import android.app.Application;
-
 import com.octo.android.robospice.persistence.exception.CacheCreationException;
 import com.octo.android.robospice.persistence.exception.CacheLoadingException;
 import com.octo.android.robospice.persistence.exception.CacheSavingException;
 import com.octo.android.robospice.persistence.file.InFileObjectPersister;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.commons.lang3.StringUtils;
+import roboguice.util.temp.Ln;
+
+import java.io.File;
+import java.io.IOException;
 
 public abstract class SpringAndroidObjectPersister<T> extends InFileObjectPersister<T> {
 
@@ -35,26 +32,19 @@ public abstract class SpringAndroidObjectPersister<T> extends InFileObjectPersis
 
     @Override
     protected T readCacheDataFromFile(File file) throws CacheLoadingException {
-        try {
-            String resultJson = null;
-            synchronized (file.getAbsolutePath().intern()) {
+        String resultJson = null;
+        synchronized (file.getAbsolutePath().intern()) {
+            try {
                 resultJson = FileUtils.readFileToString(file, CharEncoding.UTF_8);
+            } catch (IOException e) {
+                throw new CacheLoadingException(e);
             }
-            if (!StringUtils.isEmpty(resultJson)) {
-                T result = deserializeData(resultJson);
-                return result;
-            }
-            throw new CacheLoadingException("Unable to restore cache content : cache file is empty");
-        } catch (FileNotFoundException e) {
-            // Should not occur (we test before if file exists)
-            // Do not throw, file is not cached
-            Ln.w("file " + file.getAbsolutePath() + " does not exists", e);
-            return null;
-        } catch (CacheLoadingException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CacheLoadingException(e);
         }
+        if (!StringUtils.isEmpty(resultJson)) {
+            T result = deserializeData(resultJson);
+            return result;
+        }
+        throw new CacheLoadingException("Unable to restore cache content : cache file is empty");
     }
 
     protected abstract T deserializeData(String json) throws CacheLoadingException;
