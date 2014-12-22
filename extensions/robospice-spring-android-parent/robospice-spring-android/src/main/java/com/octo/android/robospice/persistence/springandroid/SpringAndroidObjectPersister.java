@@ -40,9 +40,13 @@ public abstract class SpringAndroidObjectPersister<T> extends InFileObjectPersis
                 throw new CacheLoadingException(e);
             }
         }
-        if (!StringUtils.isEmpty(resultJson)) {
-            T result = deserializeData(resultJson);
-            return result;
+        try {
+            if (!StringUtils.isEmpty(resultJson)) {
+                T result = deserializeData(resultJson);
+                return result;
+            }
+        } catch (Exception e) {
+            throw new CacheLoadingException(e);
         }
         throw new CacheLoadingException("Unable to restore cache content : cache file is empty");
     }
