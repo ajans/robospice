@@ -15,6 +15,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import com.octo.android.robospice.SpiceManager;
 import com.octo.android.robospice.persistence.DurationInMillis;
+import com.octo.android.robospice.persistence.exception.CacheCreationException;
 import com.octo.android.robospice.persistence.exception.SpiceException;
 import com.octo.android.robospice.request.SpiceRequest;
 import com.octo.android.robospice.request.listener.RequestListener;
@@ -30,6 +31,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * An adapter that is optimized for {@link SpiceListView} instances. It offers to update ImageViews
@@ -313,16 +316,27 @@ public abstract class BaseSpiceArrayAdapter<T> extends ArrayAdapter<T> {
             File tempThumbnailImageFile = bitmapRequest.getCacheFile();
             tempThumbnailImageFileName = tempThumbnailImageFile.getAbsolutePath();
             Ln.d("Filename : " + tempThumbnailImageFileName);
+            String requestCacheKey = "THUMB_IMAGE_" + data.hashCode() + "_" + imageIndex;
+            Long imageCacheExpiryDuration = getImageCacheExpiryDuration(imageIndex);
 
             boolean isImageAvailableInCache = false;
-            if (tempThumbnailImageFile.exists()) {
-                isImageAvailableInCache = true;
+            try {
+                Future<Boolean> isCached = spiceManagerBinary.isDataInCache(Bitmap.class, requestCacheKey, imageCacheExpiryDuration);
+                if (isCached.get()) {
+                    isImageAvailableInCache = true;
+                }
+            } catch (CacheCreationException e) {
+                isImageAvailableInCache = false;
+            } catch (InterruptedException e) {
+                isImageAvailableInCache = false;
+            } catch (ExecutionException e) {
+                isImageAvailableInCache = false;
             }
+            Ln.d("File is cached : " + isImageAvailableInCache);
 
-            if (isNetworkFetchingAllowed) {
+            if (isNetworkFetchingAllowed && !isImageAvailableInCache) {
                 ImageRequestListener imageRequestListener = new ImageRequestListener(data, spiceListItemView, imageIndex, tempThumbnailImageFileName);
-                Long imageCacheExpiryDuration = getImageCacheExpiryDuration(imageIndex);
-                spiceManagerBinary.execute((SpiceRequest<Bitmap>) bitmapRequest, "THUMB_IMAGE_" + data.hashCode() + "_" + imageIndex, imageCacheExpiryDuration, imageRequestListener);
+                spiceManagerBinary.execute((SpiceRequest<Bitmap>) bitmapRequest, requestCacheKey, imageCacheExpiryDuration, imageRequestListener);
             }
 
             return isImageAvailableInCache;
